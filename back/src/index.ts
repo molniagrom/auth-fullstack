@@ -1,26 +1,9 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 
-type UserRecord = {
-  id: string;
-  email: string;
-  password: string;
-  verificationCode: string;
-  isEmailVerified: boolean;
-};
-
-type RegisterBody = {
-  email?: string;
-  password?: string;
-};
-
-type VerifyEmailBody = {
-  email?: string;
-  code?: string;
-};
-
-type ResendCodeBody = {
-  email?: string;
-};
+import { createRegisterHandler } from './handlers/registerHandler';
+import { createResendCodeHandler } from './handlers/resendCodeHandler';
+import { createVerifyEmailHandler } from './handlers/verifyEmailHandler';
+import { UserRecord, VerificationMessageParams } from './types/auth.types';
 
 const app = express();
 const port = Number(process.env.PORT) || 3001;
@@ -45,7 +28,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/', (_req: Request, res: Response) => {
+app.get('/', (_req, res) => {
   res.status(200).json({
     message: 'Auth training backend is running',
     availableRoutes: [
@@ -58,120 +41,34 @@ app.get('/', (_req: Request, res: Response) => {
 
 app.post(
   '/auth/register',
-  (req: Request<Record<string, never>, unknown, RegisterBody>, res: Response) => {
-    const email = normalizeEmail(req.body.email);
-    const password = req.body.password?.trim() ?? '';
-
-    if (!isValidEmail(email)) {
-      res.status(400).json({ message: 'Valid email is required.' });
-      return;
-    }
-
-    if (password.length < 6) {
-      res.status(400).json({ message: 'Password must be at least 6 characters.' });
-      return;
-    }
-
-    const existingUser = usersStore.find((user) => user.email === email);
-
-    if (existingUser) {
-      res.status(409).json({ message: 'User with this email already exists.' });
-      return;
-    }
-
-    const verificationCode = createVerificationCode();
-
-    const user: UserRecord = {
-      id: cryptoRandomId(),
-      email,
-      password,
-      verificationCode,
-      isEmailVerified: false,
-    };
-
-    usersStore.push(user);
-
-    logVerificationMessage({
-      email: user.email,
-      code: user.verificationCode,
-      reason: 'register',
-    });
-
-    res.status(201).json({
-      message: 'Registration completed. Check backend console log for the verification link.',
-    });
-  },
+  createRegisterHandler({
+    usersStore,
+    normalizeEmail,
+    isValidEmail,
+    createVerificationCode,
+    cryptoRandomId,
+    logVerificationMessage,
+  }),
 );
 
 app.post(
   '/auth/verify-email',
-  (req: Request<Record<string, never>, unknown, VerifyEmailBody>, res: Response) => {
-    const email = normalizeEmail(req.body.email);
-    const code = req.body.code?.trim() ?? '';
-
-    if (!isValidEmail(email) || !code) {
-      res.status(400).json({ message: 'Email and code are required.' });
-      return;
-    }
-
-    const user = usersStore.find((item) => item.email === email);
-
-    if (!user) {
-      res.status(404).json({ message: 'User not found.' });
-      return;
-    }
-
-    if (user.isEmailVerified) {
-      res.status(200).json({ message: 'Email is already verified.' });
-      return;
-    }
-
-    if (user.verificationCode !== code) {
-      res.status(400).json({ message: 'Verification code is invalid.' });
-      return;
-    }
-
-    user.isEmailVerified = true;
-    user.verificationCode = '';
-
-    res.status(200).json({ message: 'Email verified successfully.' });
-  },
+  createVerifyEmailHandler({
+    usersStore,
+    normalizeEmail,
+    isValidEmail,
+  }),
 );
 
 app.post(
   '/auth/resend-code',
-  (req: Request<Record<string, never>, unknown, ResendCodeBody>, res: Response) => {
-    const email = normalizeEmail(req.body.email);
-
-    if (!isValidEmail(email)) {
-      res.status(400).json({ message: 'Valid email is required.' });
-      return;
-    }
-
-    const user = usersStore.find((item) => item.email === email);
-
-    if (!user) {
-      res.status(404).json({ message: 'User not found.' });
-      return;
-    }
-
-    if (user.isEmailVerified) {
-      res.status(400).json({ message: 'Email is already verified.' });
-      return;
-    }
-
-    user.verificationCode = createVerificationCode();
-
-    logVerificationMessage({
-      email: user.email,
-      code: user.verificationCode,
-      reason: 'resend-code',
-    });
-
-    res.status(200).json({
-      message: 'New verification code was logged to the backend console.',
-    });
-  },
+  createResendCodeHandler({
+    usersStore,
+    normalizeEmail,
+    isValidEmail,
+    createVerificationCode,
+    logVerificationMessage,
+  }),
 );
 
 app.listen(port, () => {
@@ -201,11 +98,7 @@ function buildVerificationLink(email: string, code: string) {
   return url.toString();
 }
 
-function logVerificationMessage(params: {
-  email: string;
-  code: string;
-  reason: 'register' | 'resend-code';
-}) {
+function logVerificationMessage(params: VerificationMessageParams) {
   const verificationLink = buildVerificationLink(params.email, params.code);
 
   console.log('');
