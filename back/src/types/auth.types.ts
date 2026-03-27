@@ -9,7 +9,7 @@ export type VerificationMessageParams = {
 export type UserRecord = {
   id: string;
   email: string;
-  password: string;
+  passwordHash: string;
   verificationCode: string;
   isEmailVerified: boolean;
 };
