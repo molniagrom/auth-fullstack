@@ -27,3 +27,8 @@ export type VerifyEmailBody = {
 export type ResendCodeBody = {
   email?: string;
 };
+
+export type LoginBody = {
+  email?: string;
+  password?: string;
+};

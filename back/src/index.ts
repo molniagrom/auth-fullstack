@@ -1,5 +1,6 @@
 import express from 'express';
 
+import { createLoginHandler } from './handlers/loginHandler';
 import { createRegisterHandler } from './handlers/registerHandler';
 import { createResendCodeHandler } from './handlers/resendCodeHandler';
 import { createVerifyEmailHandler } from './handlers/verifyEmailHandler';
@@ -33,6 +34,7 @@ app.get('/', (_req, res) => {
     message: 'Auth training backend is running',
     availableRoutes: [
       'POST /auth/register',
+      'POST /auth/login',
       'POST /auth/verify-email',
       'POST /auth/resend-code',
     ],
@@ -68,6 +70,15 @@ app.post(
     isValidEmail,
     createVerificationCode,
     logVerificationMessage,
+  }),
+);
+
+app.post(
+  '/auth/login',
+  createLoginHandler({
+    usersStore,
+    normalizeEmail,
+    isValidEmail,
   }),
 );
 

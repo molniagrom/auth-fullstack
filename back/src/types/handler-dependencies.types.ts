@@ -18,3 +18,5 @@ export type ResendCodeHandlerDependencies = SharedHandlerDependencies & {
   createVerificationCode: () => string;
   logVerificationMessage: (params: VerificationMessageParams) => void;
 };
+
+export type LoginHandlerDependencies = SharedHandlerDependencies;
