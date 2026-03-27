@@ -1,0 +1,26 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 3 - Component Diagram (Client - React)
+
+Person(user, "User")
+
+Container_Boundary(react_app, "React App") {
+    Component(reg_form, "RegistrationForm", "React Component", "Fields: email, password. On submit: POST /register. On success: show 'Check the console log'")
+    Component(verify_form, "VerifyEmailForm", "React Component", "Opened via logged link. On mount: POST /verify-email. Button: 'Resend code' -> POST /resend-code. On success: show 'Email verified!'")
+}
+
+System_Ext(smtp_mock, "SMTP Mock Adapter", "Logs verification message and link to console")
+Container(backend_api, "Backend API", "Node/Express/etc", "http://localhost:3001")
+
+Rel(user, reg_form, "fills email + password")
+Rel(reg_form, backend_api, "POST /register", "JSON/HTTPS")
+Rel(backend_api, smtp_mock, "logs verification message with link")
+Rel(user, smtp_mock, "reads console output and copies/clicks link")
+Rel(smtp_mock, verify_form, "opens /verify-email?code=XXX&email=YYY")
+Rel(verify_form, backend_api, "POST /verify-email", "JSON/HTTPS")
+Rel(verify_form, backend_api, "POST /resend-code", "JSON/HTTPS")
+
+@enduml

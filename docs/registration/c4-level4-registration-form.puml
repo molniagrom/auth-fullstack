@@ -1,0 +1,33 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 4 - Registration Form (Client)
+
+Person(user, "User")
+Container(backend_api, "Backend API", "Node/Express/etc", "Handles registration request")
+System_Ext(smtp_mock, "SMTP Mock Adapter", "Logs verification message and link to console")
+
+Container_Boundary(registration_form_flow, "RegistrationForm") {
+    Component(email_input, "Email Input", "Form field", "Stores email entered by user")
+    Component(password_input, "Password Input", "Form field", "Stores password entered by user")
+    Component(submit_handler, "Submit Handler", "UI event handler", "Collects form data and starts registration request")
+    Component(pending_state, "Pending State", "UI state", "Disables form while request is in progress")
+    Component(success_message, "Success Message", "UI feedback", "Shows 'Check console log' after successful registration")
+    Component(error_message, "Error Message", "UI feedback", "Shows validation or server error")
+}
+
+Rel(user, email_input, "types email")
+Rel(user, password_input, "types password")
+Rel(email_input, submit_handler, "provides email")
+Rel(password_input, submit_handler, "provides password")
+Rel(submit_handler, pending_state, "sets loading")
+Rel(submit_handler, backend_api, "POST /register", "JSON/HTTPS")
+Rel(backend_api, success_message, "success response")
+Rel(backend_api, error_message, "error response")
+Rel(backend_api, smtp_mock, "logs verification message and link")
+Rel(success_message, user, "shows: Check console log")
+Rel(error_message, user, "shows error text")
+
+@enduml

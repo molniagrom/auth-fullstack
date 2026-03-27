@@ -1,0 +1,24 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 2 - Container Diagram
+
+Person(user, "User")
+System_Ext(smtp_mock, "SMTP Mock Adapter", "Logs verification message and link to console instead of sending real email")
+
+System_Boundary(auth_system, "Auth Fullstack") {
+    Container(client_app, "Client App", "React/Vite", "Registration form, verify-email page, success/error states")
+    Container(backend_api, "Backend API", "Node.js + Express + TypeScript", "Handles registration, email verification, resend code")
+    ContainerDb(users_store, "Users Store", "In-memory first, DB later", "Users, verification codes, verification status")
+}
+
+Rel(user, client_app, "uses in browser")
+Rel(client_app, backend_api, "POST /register, POST /verify-email, POST /resend-code", "JSON/HTTPS")
+Rel(backend_api, users_store, "creates users, stores codes, marks email verified")
+Rel(backend_api, smtp_mock, "passes verification email payload for console logging")
+Rel(user, smtp_mock, "reads logged verification link")
+Rel(user, client_app, "opens verify-email page from logged link")
+
+@enduml

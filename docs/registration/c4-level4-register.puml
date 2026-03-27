@@ -1,0 +1,34 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 4 - Register Flow (Backend)
+
+Container_Boundary(register_flow, "Register Flow") {
+    Component(register_endpoint, "POST /register", "Express route handler", "Accepts email and password from client")
+    Component(register_validation, "RegisterValidation", "Validation logic", "Checks email format, password rules, required fields")
+    Component(user_lookup, "Find Existing User", "Repository call", "Checks whether a user with this email already exists")
+    Component(code_generator, "VerificationCodeGenerator", "Utility", "Creates verification code for email confirmation")
+    Component(user_create, "Create User", "Repository call", "Creates a new user with verification code and not-verified status")
+    Component(email_sender, "SmtpMockAdapter", "Mock adapter", "Builds verification message and logs verify-email link to console")
+    Component(register_response, "Register Response", "HTTP response", "Returns success and tells client to check console log")
+}
+
+Container(client_app, "Client App", "React/Vite", "Sends registration request")
+ContainerDb(users_store, "Users Store", "In-memory first, DB later", "User records")
+System_Ext(smtp_mock, "SMTP Mock Adapter Output", "Console log with verification link")
+
+Rel(client_app, register_endpoint, "POST /register", "JSON/HTTPS")
+Rel(register_endpoint, register_validation, "validates body")
+Rel(register_validation, user_lookup, "if request is valid")
+Rel(user_lookup, users_store, "reads by email")
+Rel(user_lookup, code_generator, "if user does not exist")
+Rel(code_generator, user_create, "passes generated code")
+Rel(user_create, users_store, "writes new user")
+Rel(user_create, email_sender, "passes email + verification code")
+Rel(email_sender, smtp_mock, "logs verification link to console")
+Rel(email_sender, register_response, "after message is logged")
+Rel(register_response, client_app, "success: check console log")
+
+@enduml

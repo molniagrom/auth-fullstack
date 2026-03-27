@@ -1,0 +1,32 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 4 - Resend Code (Client)
+
+Person(user, "User")
+System_Ext(smtp_mock, "SMTP Mock Adapter", "Logs a new verification message and link to console")
+Container(backend_api, "Backend API", "Node/Express/etc", "Handles resend-code request")
+
+Container_Boundary(resend_code_flow, "VerifyEmailForm - Resend Code") {
+    Component(link_params, "Verify Link Params", "URL parsing", "Reads email and code from verification link")
+    Component(resend_button, "Resend Code Button", "UI action", "Lets user request a new verification code")
+    Component(resend_handler, "Resend Handler", "UI event handler", "Sends POST /resend-code using current email")
+    Component(resend_pending, "Resend Pending State", "UI state", "Prevents repeated clicks while request is in progress")
+    Component(resend_success, "Resend Success Message", "UI feedback", "Shows that a new code was logged")
+    Component(resend_error, "Resend Error Message", "UI feedback", "Shows resend error")
+}
+
+Rel(user, link_params, "opens verify-email page from logged link")
+Rel(user, resend_button, "clicks Resend code")
+Rel(link_params, resend_handler, "provides current email")
+Rel(resend_button, resend_handler, "triggers resend")
+Rel(resend_handler, resend_pending, "sets loading")
+Rel(resend_handler, backend_api, "POST /resend-code", "JSON/HTTPS")
+Rel(backend_api, resend_success, "success response")
+Rel(backend_api, resend_error, "error response")
+Rel(backend_api, smtp_mock, "logs new verification message and link")
+Rel(resend_success, user, "shows: new code logged")
+
+@enduml

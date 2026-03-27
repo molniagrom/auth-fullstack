@@ -1,0 +1,35 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 3 - Component Diagram (Backend API)
+
+Container_Boundary(backend_api, "Backend API") {
+    Component(auth_controller, "AuthController", "Express route handlers", "Receives /register, /verify-email, /resend-code requests and returns HTTP responses")
+    Component(input_validation, "InputValidation", "Validation logic", "Checks request body, query params, email, password, code")
+    Component(registration_use_case, "RegistrationUseCase", "Application logic", "Creates user, generates verification code, prepares registration result")
+    Component(verification_use_case, "VerificationUseCase", "Application logic", "Verifies code from logged link and marks email as verified")
+    Component(resend_code_use_case, "ResendCodeUseCase", "Application logic", "Generates a new code and triggers a new mocked email log")
+    Component(user_repository, "UserRepository", "Data access", "Stores and loads users, codes, verification state")
+    Component(email_gateway, "SmtpMockAdapter", "Mock adapter", "Builds verification message and logs link to console instead of sending real email")
+}
+
+ContainerDb(users_store, "Users Store", "In-memory first, DB later", "User records and verification data")
+System_Ext(smtp_mock, "SMTP Mock Adapter Output", "Console log with verification message and link")
+Container(client_app, "Client App", "React/Vite", "Calls backend endpoints and opens verify-email page from logged link")
+
+Rel(client_app, auth_controller, "POST /register, POST /verify-email, POST /resend-code", "JSON/HTTPS")
+Rel(auth_controller, input_validation, "validates incoming data")
+Rel(input_validation, registration_use_case, "valid register request")
+Rel(input_validation, verification_use_case, "valid verify request")
+Rel(input_validation, resend_code_use_case, "valid resend request")
+Rel(registration_use_case, user_repository, "creates user and saves verification code")
+Rel(verification_use_case, user_repository, "finds user by code/email and marks email as verified")
+Rel(resend_code_use_case, user_repository, "updates verification code")
+Rel(registration_use_case, email_gateway, "logs first verification message")
+Rel(resend_code_use_case, email_gateway, "logs new verification message")
+Rel(user_repository, users_store, "reads and writes user data")
+Rel(email_gateway, smtp_mock, "writes verification link to console")
+
+@enduml

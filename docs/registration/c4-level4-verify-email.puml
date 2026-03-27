@@ -1,0 +1,31 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 4 - Verify Email Flow (Backend)
+
+Container_Boundary(verify_flow, "Verify Email Flow") {
+    Component(verify_endpoint, "POST /verify-email", "Express route handler", "Accepts code and email from verify-email page")
+    Component(verify_validation, "VerifyValidation", "Validation logic", "Checks code, email, and request shape")
+    Component(user_find, "Find User By Email + Code", "Repository call", "Loads user by email and verification code")
+    Component(status_update, "Mark Email Verified", "Repository call", "Sets email verification status to true")
+    Component(code_cleanup, "Clear Verification Code", "Repository call", "Removes or invalidates used verification code")
+    Component(verify_response, "Verify Response", "HTTP response", "Returns success result to client")
+}
+
+Container(client_app, "Client App", "React/Vite", "Opens verify-email page from logged verification link")
+ContainerDb(users_store, "Users Store", "In-memory first, DB later", "User records")
+
+Rel(client_app, verify_endpoint, "POST /verify-email", "JSON/HTTPS")
+Rel(verify_endpoint, verify_validation, "validates body/query data")
+Rel(verify_validation, user_find, "if request is valid")
+Rel(user_find, users_store, "reads user by email + code")
+Rel(user_find, status_update, "if user/code match")
+Rel(status_update, users_store, "updates verification status")
+Rel(status_update, code_cleanup, "after verify success")
+Rel(code_cleanup, users_store, "clears used code")
+Rel(code_cleanup, verify_response, "verification completed")
+Rel(verify_response, client_app, "success: email verified")
+
+@enduml

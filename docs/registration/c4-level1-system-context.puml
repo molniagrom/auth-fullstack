@@ -1,0 +1,16 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 1 - System Context
+
+Person(user, "User", "Registers an account and verifies email using a link logged to console")
+System(auth_system, "Auth Fullstack", "Registration flow with email verification")
+System_Ext(smtp_mock, "SMTP Mock Adapter", "Does not send real email. Logs verification message and link to console")
+
+Rel(user, auth_system, "registers account and completes email verification")
+Rel(auth_system, smtp_mock, "passes verification email payload")
+Rel(user, smtp_mock, "reads console output and opens verification link")
+
+@enduml
