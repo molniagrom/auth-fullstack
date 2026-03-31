@@ -1,7 +1,7 @@
 import { AxiosError } from 'axios'
 
 import { axiosInstance } from './client'
-import { clearAccessToken, getAccessToken, setAccessToken } from './authSession'
+import { clearAccessToken, setAccessToken } from './authSession'
 
 type ApiSuccess = {
   message: string
@@ -53,23 +53,27 @@ export const api = {
   },
 
   async login(body: LoginRequest) {
-    const response = await axiosInstance.post<LoginSuccess>('/auth/login', body)
+    const response = await axiosInstance.post<LoginSuccess>('/auth/login', body, {
+      withCredentials: true,
+    })
     setAccessToken(response.data.accessToken)
     return response.data
   },
 
   async refresh() {
-    const response = await axiosInstance.post<LoginSuccess>('/auth/refresh')
+    const response = await axiosInstance.post<LoginSuccess>(
+      '/auth/refresh',
+      undefined,
+      {
+        withCredentials: true,
+      },
+    )
     setAccessToken(response.data.accessToken)
     return response.data
   },
 
   async getCurrentUser() {
-    const response = await axiosInstance.get<AuthUser>('/auth/me', {
-      headers: {
-        Authorization: `Bearer ${getAccessToken()}`,
-      },
-    })
+    const response = await axiosInstance.get<AuthUser>('/auth/me')
 
     return response.data
   },
@@ -88,7 +92,9 @@ export const api = {
   },
 
   async logout() {
-    const response = await axiosInstance.post<ApiSuccess>('/auth/logout')
+    const response = await axiosInstance.post<ApiSuccess>('/auth/logout', undefined, {
+      withCredentials: true,
+    })
     clearAccessToken()
     return response.data
   },
