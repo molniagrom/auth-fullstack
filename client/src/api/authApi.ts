@@ -1,4 +1,4 @@
-import { postJson } from './client'
+import { apiClient } from './client'
 
 type ApiSuccess = {
   message: string
@@ -18,14 +18,18 @@ type ResendCodeRequest = {
   email: string
 }
 
-export function registerUser(body: RegisterRequest) {
-  return postJson<ApiSuccess, RegisterRequest>('/auth/register', body)
+export async function registerUser(body: RegisterRequest) {
+  const response = await apiClient.post<ApiSuccess>('/auth/register', body)
+  return response.data
 }
 
-export function verifyEmail(body: VerifyEmailRequest) {
-  return postJson<ApiSuccess, VerifyEmailRequest>('/auth/verify-email', body)
+export async function verifyEmail(body: VerifyEmailRequest) {
+  const response = await apiClient.post<ApiSuccess>('/auth/verify-email', body)
+  return response.data
 }
 
-export function resendVerificationCode(body: ResendCodeRequest) {
-  return postJson<ApiSuccess, ResendCodeRequest>('/auth/resend-code', body)
+export async function resendVerificationCode(body: ResendCodeRequest) {
+  const response = await apiClient
+      .post<ApiSuccess>('/auth/resend-code', body)
+  return response.data
 }

@@ -1,31 +1,29 @@
-const apiBaseUrl = 'http://localhost:3001'
+import axios, { AxiosError } from 'axios'
 
-type ApiMessageResponse = {
+type ApiErrorResponse = {
   message?: string
 }
 
-export async function postJson<ResponseBody, RequestBody>(
-  path: string,
-  body: RequestBody,
-): Promise<ResponseBody> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-
-  const data = (await response.json()) as ResponseBody & ApiMessageResponse
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Request failed.')
-  }
-
-  return data
-}
+export const apiClient = axios.create({
+  baseURL: 'http://localhost:3001',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
 
 export function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof AxiosError) {
+    const message = (error.response?.data as ApiErrorResponse | undefined)?.message
+
+    if (message) {
+      return message
+    }
+
+    if (error.message) {
+      return error.message
+    }
+  }
+
   if (error instanceof Error && error.message) {
     return error.message
   }
