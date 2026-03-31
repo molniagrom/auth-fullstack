@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { getErrorMessage } from '../api/client'
+import { resendVerificationCode, verifyEmail } from '../api/authApi'
 import { StatusMessage } from './StatusMessage'
-
-const apiBaseUrl = 'http://localhost:3001'
-
-type ApiSuccess = {
-  message: string
-}
 
 export function VerifyEmailForm() {
   const searchParams = useMemo(
@@ -69,21 +65,9 @@ export function VerifyEmailForm() {
     setResendError('')
 
     try {
-      const response = await fetch(`${apiBaseUrl}/auth/resend-code`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: emailFromLink,
-        }),
+      const data = await resendVerificationCode({
+        email: emailFromLink,
       })
-
-      const data = (await response.json()) as ApiSuccess
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Resend code failed.')
-      }
 
       setResendMessage(data.message)
     } catch (error) {
@@ -155,22 +139,10 @@ async function startVerifyEmail(params: {
   params.onStart()
 
   try {
-    const response = await fetch(`${apiBaseUrl}/auth/verify-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: params.email,
-        code: params.code,
-      }),
+    const data = await verifyEmail({
+      email: params.email,
+      code: params.code,
     })
-
-    const data = (await response.json()) as ApiSuccess
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Verification failed.')
-    }
 
     params.onSuccess(data.message)
   } catch (error) {
@@ -178,12 +150,4 @@ async function startVerifyEmail(params: {
   } finally {
     params.onFinally()
   }
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
-
-  return fallback
 }

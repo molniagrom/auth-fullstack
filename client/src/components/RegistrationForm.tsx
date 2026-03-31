@@ -1,13 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
+import { getErrorMessage } from '../api/client'
+import { registerUser } from '../api/authApi'
 import { StatusMessage } from './StatusMessage'
-
-const apiBaseUrl = 'http://localhost:3001'
-
-type ApiSuccess = {
-  message: string
-}
 
 export function RegistrationForm() {
   const [registrationEmail, setRegistrationEmail] = useState('')
@@ -23,22 +19,10 @@ export function RegistrationForm() {
     setRegistrationSuccess('')
 
     try {
-      const response = await fetch(`${apiBaseUrl}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: registrationEmail,
-          password: registrationPassword,
-        }),
+      const data = await registerUser({
+        email: registrationEmail,
+        password: registrationPassword,
       })
-
-      const data = (await response.json()) as ApiSuccess
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed.')
-      }
 
       setRegistrationSuccess(data.message)
       setRegistrationPassword('')
@@ -96,12 +80,4 @@ export function RegistrationForm() {
       <StatusMessage tone="error" message={registrationError} />
     </section>
   )
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
-
-  return fallback
 }
