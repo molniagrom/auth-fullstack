@@ -1,0 +1,50 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 3 - Component Diagram (Backend API)
+
+Container_Boundary(backend_api, "Backend API") {
+    Component(auth_controller, "AuthController", "Express route handlers", "Receives /auth/login, /auth/refresh, /auth/me, /auth/logout requests and returns HTTP responses")
+    Component(input_validation, "InputValidation", "Validation logic", "Checks request body, cookies, authorization header, and route preconditions")
+    Component(login_use_case, "LoginUseCase", "Application logic", "Checks credentials and starts an authenticated session")
+    Component(refresh_use_case, "RefreshTokenUseCase", "Application logic", "Validates refresh token, rotates session, and issues a new token pair")
+    Component(current_user_use_case, "CurrentUserUseCase", "Application logic", "Reads access token claims and returns current user data for protected pages")
+    Component(logout_use_case, "LogoutUseCase", "Application logic", "Revokes refresh session and clears refresh cookie")
+    Component(password_service, "PasswordService", "Security service", "Compares plain password with stored hash")
+    Component(token_service, "JwtTokenService", "Security service", "Signs and verifies access and refresh JWTs")
+    Component(auth_middleware, "AuthMiddleware", "Express middleware", "Protects routes by validating access token from Authorization header")
+    Component(user_repository, "UserRepository", "Data access", "Loads user by email or id")
+    Component(session_repository, "SessionRepository", "Data access", "Creates and rotates refresh token sessions")
+}
+
+Container(client_app, "Client App", "React/Vite", "Calls auth endpoints and protected endpoints")
+Container(browser_cookie_jar, "Browser Cookie Jar", "Browser storage", "Stores httpOnly refresh token cookie")
+ContainerDb(users_store, "Users Store", "In-memory first, DB later", "User records and password hashes")
+ContainerDb(session_store, "Refresh Session Store", "In-memory first, DB later", "Refresh sessions and revocation state")
+System_Ext(jwt_runtime, "JWT Runtime", "Signs and verifies JWT tokens")
+
+Rel(client_app, auth_controller, "calls auth endpoints", "JSON/HTTPS")
+Rel(browser_cookie_jar, auth_controller, "sends refresh cookie automatically", "Cookie/HTTPS")
+Rel(auth_controller, input_validation, "validates request data")
+Rel(input_validation, login_use_case, "valid login request")
+Rel(input_validation, refresh_use_case, "valid refresh request")
+Rel(input_validation, current_user_use_case, "valid /auth/me request")
+Rel(input_validation, logout_use_case, "valid logout request")
+Rel(login_use_case, user_repository, "loads user by email")
+Rel(login_use_case, password_service, "checks password")
+Rel(login_use_case, session_repository, "creates refresh session")
+Rel(login_use_case, token_service, "creates access token and refresh token")
+Rel(refresh_use_case, token_service, "verifies refresh token and signs new tokens")
+Rel(refresh_use_case, session_repository, "finds old session and rotates to a new one")
+Rel(current_user_use_case, auth_middleware, "requires access token check")
+Rel(auth_middleware, token_service, "verifies access token")
+Rel(current_user_use_case, user_repository, "loads current user by id from token claims")
+Rel(logout_use_case, session_repository, "revokes current refresh session")
+Rel(user_repository, users_store, "reads user data")
+Rel(session_repository, session_store, "reads and writes refresh sessions")
+Rel(token_service, jwt_runtime, "signs and verifies JWTs")
+Rel(auth_controller, browser_cookie_jar, "sets or clears refresh cookie")
+
+@enduml

@@ -1,0 +1,31 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 4 - Protected Request Flow (Access Token)
+
+Container_Boundary(protected_flow, "Protected Request Flow") {
+    Component(protected_endpoint, "GET /auth/me", "Express route handler", "Returns current user data for authenticated client")
+    Component(auth_header_read, "Read Authorization Header", "HTTP parsing", "Extracts Bearer access token from request")
+    Component(access_validation, "AccessValidation", "Validation logic", "Rejects missing or malformed Authorization header")
+    Component(access_verify, "Verify Access JWT", "JWT service", "Checks access token signature and expiry")
+    Component(claims_extract, "Extract Claims", "Security step", "Reads user id and other claims from verified JWT")
+    Component(user_lookup, "Load Current User", "Repository call", "Loads user by id from access token claims")
+    Component(me_response, "Current User Response", "HTTP response", "Returns current user profile to client")
+}
+
+Container(client_app, "Client App", "React/Vite", "Sends protected request with Bearer token")
+ContainerDb(users_store, "Users Store", "In-memory first, DB later", "User records")
+
+Rel(client_app, protected_endpoint, "GET /auth/me", "Authorization: Bearer <accessToken>")
+Rel(protected_endpoint, auth_header_read, "reads Authorization header")
+Rel(auth_header_read, access_validation, "if header exists")
+Rel(access_validation, access_verify, "if Bearer token exists")
+Rel(access_verify, claims_extract, "if JWT is valid and not expired")
+Rel(claims_extract, user_lookup, "passes user id from token claims")
+Rel(user_lookup, users_store, "reads by id")
+Rel(user_lookup, me_response, "if user exists")
+Rel(me_response, client_app, "returns current user data")
+
+@enduml

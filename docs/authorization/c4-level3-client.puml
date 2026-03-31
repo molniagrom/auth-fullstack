@@ -1,0 +1,32 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 3 - Component Diagram (Client - React)
+
+Container(backend_api, "Backend API", "Node/Express/etc", "Handles login, refresh, current user, and logout")
+Container(browser_cookie_jar, "Browser Cookie Jar", "Browser storage", "Stores httpOnly refresh token cookie")
+
+Container_Boundary(client_app, "Client App") {
+    Component(login_page, "Login Page", "React page", "Shows email/password form and authentication errors")
+    Component(login_form, "Login Form", "React component", "Collects credentials and submits login request")
+    Component(auth_store, "Auth Store", "React state/context", "Keeps current user data and short-lived access token in memory")
+    Component(http_client, "HTTP Client", "Axios/fetch wrapper", "Adds Authorization header and retries protected requests after refresh")
+    Component(route_guard, "Route Guard", "React routing logic", "Blocks protected pages when the user is not authenticated")
+    Component(profile_page, "Protected Page", "React page", "Loads current user data from a protected endpoint")
+}
+
+Rel(login_page, login_form, "renders")
+Rel(login_form, http_client, "POST /auth/login")
+Rel(http_client, backend_api, "sends login, refresh, me, logout requests")
+Rel(backend_api, browser_cookie_jar, "sets refresh cookie on login/refresh")
+Rel(browser_cookie_jar, http_client, "browser sends cookie automatically during refresh")
+Rel(http_client, auth_store, "stores access token and current user")
+Rel(auth_store, route_guard, "provides auth state")
+Rel(route_guard, profile_page, "allows protected page rendering")
+Rel(profile_page, http_client, "GET /auth/me with access token")
+Rel(http_client, backend_api, "Authorization: Bearer <accessToken>")
+Rel(http_client, http_client, "on 401 from expired access token: POST /auth/refresh and retry original request")
+
+@enduml

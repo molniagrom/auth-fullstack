@@ -1,0 +1,27 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 2 - Container Diagram
+
+Person(user, "User")
+System_Ext(jwt_runtime, "JWT Runtime", "Signs and verifies JWT access and refresh tokens")
+
+System_Boundary(auth_system, "Auth Fullstack - Authorization") {
+    Container(client_app, "Client App", "React/Vite", "Shows login form, keeps access token in client state, sends protected requests, triggers refresh when access token expires")
+    Container(backend_api, "Backend API", "Node.js + Express + TypeScript", "Handles /auth/login, /auth/refresh, /auth/me, /auth/logout")
+    ContainerDb(users_store, "Users Store", "In-memory first, DB later", "User records and password hashes")
+    ContainerDb(session_store, "Refresh Session Store", "In-memory first, DB later", "Refresh token sessions, token ids, expiry, revocation state")
+    Container(browser_cookie_jar, "Browser Cookie Jar", "Browser storage", "Stores httpOnly refresh token cookie")
+}
+
+Rel(user, client_app, "uses in browser")
+Rel(client_app, backend_api, "POST /auth/login, POST /auth/refresh, GET /auth/me, POST /auth/logout", "JSON/HTTPS")
+Rel(client_app, browser_cookie_jar, "browser automatically sends refresh cookie")
+Rel(backend_api, users_store, "reads user data and password hash")
+Rel(backend_api, session_store, "creates, validates, rotates, and revokes refresh sessions")
+Rel(backend_api, jwt_runtime, "signs and verifies access/refresh JWTs")
+Rel(backend_api, browser_cookie_jar, "sets and clears httpOnly refresh cookie")
+
+@enduml

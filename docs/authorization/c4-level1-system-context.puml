@@ -1,0 +1,16 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 1 - System Context
+
+Person(user, "User")
+System_Ext(jwt_runtime, "JWT Runtime", "Signs and verifies JWT access and refresh tokens")
+
+System(system_auth, "Auth Fullstack - Authorization", "Handles login, access token checks, refresh token rotation, and protected requests")
+
+Rel(user, system_auth, "logs in and works with protected pages")
+Rel(system_auth, jwt_runtime, "creates and validates JWT tokens")
+
+@enduml

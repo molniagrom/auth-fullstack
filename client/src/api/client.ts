@@ -6,6 +6,7 @@ type ApiErrorResponse = {
 
 export const axiosInstance = axios.create({
   baseURL: 'http://localhost:3001',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },

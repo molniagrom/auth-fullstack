@@ -2,11 +2,11 @@ import bcrypt from 'bcrypt';
 import { RequestHandler } from 'express';
 
 import { LoginHandlerDependencies } from '../types/handler-dependencies.types';
-import { LoginBody } from '../types/auth.types';
+import { LoginBody, LoginSuccessResponse } from '../types/auth.types';
 
 export function createLoginHandler(
   dependencies: LoginHandlerDependencies,
-): RequestHandler<Record<string, never>, unknown, LoginBody> {
+): RequestHandler<Record<string, never>, LoginSuccessResponse | { message: string }, LoginBody> {
   return async (req, res) => {
     try {
       const email = dependencies.normalizeEmail(req.body.email);
@@ -36,10 +36,37 @@ export function createLoginHandler(
         return;
       }
 
-      res.status(200).json({
-        message: 'Login successful.',
+      const refreshSession = {
+        id: dependencies.cryptoRandomId(),
+        userId: user.id,
+        expiresAt: Date.now() + dependencies.refreshTokenTtlMs,
+        isRevoked: false,
+        replacedBySessionId: null,
+      };
+
+      dependencies.refreshSessionsStore.push(refreshSession);
+
+      const accessToken = dependencies.createAccessToken({
         userId: user.id,
         email: user.email,
+      });
+      const refreshToken = dependencies.createRefreshToken({
+        userId: user.id,
+        sessionId: refreshSession.id,
+      });
+
+      dependencies.setRefreshTokenCookie({
+        token: refreshToken,
+        res,
+      });
+
+      res.status(200).json({
+        message: 'Login successful.',
+        accessToken,
+        user: {
+          id: user.id,
+          email: user.email,
+        },
       });
     } catch (error) {
       console.error('Login error:', error);

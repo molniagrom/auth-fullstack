@@ -1,0 +1,46 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 4 - Refresh Token Flow (Backend)
+
+Container_Boundary(refresh_flow, "Refresh Token Flow") {
+    Component(refresh_endpoint, "POST /auth/refresh", "Express route handler", "Accepts request with refresh token cookie")
+    Component(cookie_read, "Read Refresh Cookie", "HTTP parsing", "Extracts refresh token from httpOnly cookie")
+    Component(refresh_validation, "RefreshValidation", "Validation logic", "Rejects missing or malformed refresh token")
+    Component(refresh_verify, "Verify Refresh JWT", "JWT service", "Checks signature, expiry, and token payload")
+    Component(session_lookup, "Find Refresh Session", "Repository call", "Loads session by token id from JWT payload")
+    Component(rotation_check, "Rotation Check", "Security rule", "Rejects revoked, expired, or already rotated session")
+    Component(revoke_old_session, "Revoke Old Session", "Repository call", "Marks old refresh session as used")
+    Component(create_new_session, "Create New Session", "Repository call", "Creates replacement refresh session")
+    Component(create_new_access_token, "Create New Access Token", "JWT service", "Signs a new short-lived access JWT")
+    Component(create_new_refresh_token, "Create New Refresh Token", "JWT service", "Signs a new refresh JWT for rotated session")
+    Component(set_new_cookie, "Set New Refresh Cookie", "HTTP response step", "Overwrites old cookie with rotated refresh token")
+    Component(refresh_response, "Refresh Response", "HTTP response", "Returns new access token")
+}
+
+Container(client_app, "Client App", "React/Vite", "Calls refresh when access token expires")
+Container(browser_cookie_jar, "Browser Cookie Jar", "Browser storage", "Sends existing refresh cookie and stores new one")
+ContainerDb(session_store, "Refresh Session Store", "In-memory first, DB later", "Refresh sessions")
+
+Rel(client_app, refresh_endpoint, "POST /auth/refresh", "HTTPS")
+Rel(browser_cookie_jar, refresh_endpoint, "Cookie: refreshToken=...")
+Rel(refresh_endpoint, cookie_read, "reads cookie")
+Rel(cookie_read, refresh_validation, "if cookie exists")
+Rel(refresh_validation, refresh_verify, "if token shape is valid")
+Rel(refresh_verify, session_lookup, "passes session id from JWT payload")
+Rel(session_lookup, session_store, "reads session")
+Rel(session_lookup, rotation_check, "if session exists")
+Rel(rotation_check, revoke_old_session, "if session is active")
+Rel(revoke_old_session, session_store, "marks old session used/revoked")
+Rel(revoke_old_session, create_new_session, "continues rotation")
+Rel(create_new_session, session_store, "writes replacement session")
+Rel(create_new_session, create_new_access_token, "passes user id and claims")
+Rel(create_new_access_token, create_new_refresh_token, "after access token is created")
+Rel(create_new_refresh_token, set_new_cookie, "passes rotated refresh JWT")
+Rel(set_new_cookie, browser_cookie_jar, "Set-Cookie: refreshToken=...")
+Rel(set_new_cookie, refresh_response, "after cookie is updated")
+Rel(refresh_response, client_app, "returns new access token")
+
+@enduml

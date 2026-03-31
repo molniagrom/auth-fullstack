@@ -1,0 +1,41 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 4 - Login Flow (Backend)
+
+Container_Boundary(login_flow, "Login Flow") {
+    Component(login_endpoint, "POST /auth/login", "Express route handler", "Accepts email and password from client")
+    Component(login_validation, "LoginValidation", "Validation logic", "Checks email format, password presence, and request shape")
+    Component(user_lookup, "Find User", "Repository call", "Loads user by normalized email")
+    Component(password_check, "Compare Password", "Security service", "Compares plain password with stored hash")
+    Component(email_verified_check, "Email Verified Check", "Business rule", "Rejects login when email is not verified yet")
+    Component(create_refresh_session, "Create Refresh Session", "Repository call", "Creates a server-side session for the refresh token")
+    Component(create_access_token, "Create Access Token", "JWT service", "Signs a short-lived JWT used for protected requests")
+    Component(create_refresh_token, "Create Refresh Token", "JWT service", "Signs a long-lived JWT linked to refresh session id")
+    Component(set_refresh_cookie, "Set Refresh Cookie", "HTTP response step", "Stores refresh token in httpOnly cookie")
+    Component(login_response, "Login Response", "HTTP response", "Returns access token and current user data")
+}
+
+Container(client_app, "Client App", "React/Vite", "Sends login request and stores access token in memory")
+ContainerDb(users_store, "Users Store", "In-memory first, DB later", "User records and password hashes")
+ContainerDb(session_store, "Refresh Session Store", "In-memory first, DB later", "Refresh sessions")
+Container(browser_cookie_jar, "Browser Cookie Jar", "Browser storage", "Stores httpOnly refresh token cookie")
+
+Rel(client_app, login_endpoint, "POST /auth/login", "JSON/HTTPS")
+Rel(login_endpoint, login_validation, "validates body")
+Rel(login_validation, user_lookup, "if request is valid")
+Rel(user_lookup, users_store, "reads by email")
+Rel(user_lookup, password_check, "if user exists")
+Rel(password_check, email_verified_check, "if password is correct")
+Rel(email_verified_check, create_refresh_session, "if email is verified")
+Rel(create_refresh_session, session_store, "writes refresh session")
+Rel(create_refresh_session, create_access_token, "passes user id and claims")
+Rel(create_access_token, create_refresh_token, "after access token is created")
+Rel(create_refresh_token, set_refresh_cookie, "passes refresh JWT")
+Rel(set_refresh_cookie, browser_cookie_jar, "Set-Cookie: refreshToken=...")
+Rel(set_refresh_cookie, login_response, "after cookie is prepared")
+Rel(login_response, client_app, "returns access token + user data")
+
+@enduml
