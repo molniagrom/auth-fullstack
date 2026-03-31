@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 
 import { getErrorMessage } from '../api/client'
-import { registerUser } from '../api/authApi'
+import { api } from '../api/authApi'
 import { StatusMessage } from './StatusMessage'
 
 export function RegistrationForm() {
@@ -19,7 +19,7 @@ export function RegistrationForm() {
     setRegistrationSuccess('')
 
     try {
-      const data = await registerUser({
+      const data = await api.registerUser({
         email: registrationEmail,
         password: registrationPassword,
       })

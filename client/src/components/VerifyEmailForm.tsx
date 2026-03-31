@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { getErrorMessage } from '../api/client'
-import { resendVerificationCode, verifyEmail } from '../api/authApi'
+import { api } from '../api/authApi'
 import { StatusMessage } from './StatusMessage'
 
 export function VerifyEmailForm() {
@@ -65,7 +65,7 @@ export function VerifyEmailForm() {
     setResendError('')
 
     try {
-      const data = await resendVerificationCode({
+      const data = await api.resendVerificationCode({
         email: emailFromLink,
       })
 
@@ -139,7 +139,7 @@ async function startVerifyEmail(params: {
   params.onStart()
 
   try {
-    const data = await verifyEmail({
+    const data = await api.verifyEmail({
       email: params.email,
       code: params.code,
     })
