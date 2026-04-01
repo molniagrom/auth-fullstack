@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
+import { getAuthSession, subscribeToAuthSession } from './api/authSession'
 import { RegistrationForm } from './components/RegistrationForm'
 import { AuthorizationPlayground } from './components/AuthorizationPlayground'
+import { ProtectedPage } from './components/ProtectedPage'
 import { VerifyEmailForm } from './components/VerifyEmailForm'
 import './App.css'
 
-type ViewMode = 'register' | 'authorization' | 'verify'
+type ViewMode = 'register' | 'authorization' | 'protected' | 'verify'
 
 function App() {
   const [pathname, setPathname] = useState(window.location.pathname)
+  const [authSession, setAuthSession] = useState(getAuthSession())
   const viewMode = getViewMode(pathname)
-  const pageContent = getPageContent(viewMode)
+  const pageContent = getPageContent(viewMode, Boolean(authSession.user && authSession.accessToken))
 
   useEffect(() => {
     function handlePopState() {
@@ -21,6 +24,12 @@ function App() {
     return () => {
       window.removeEventListener('popstate', handlePopState)
     }
+  }, [])
+
+  useEffect(() => {
+    return subscribeToAuthSession(() => {
+      setAuthSession(getAuthSession())
+    })
   }, [])
 
   function navigateTo(nextPathname: string) {
@@ -56,6 +65,13 @@ function App() {
             Authorization
           </button>
           <button
+            className={viewMode === 'protected' ? 'menu-link active' : 'menu-link'}
+            type="button"
+            onClick={() => navigateTo('/protected')}
+          >
+            Protected
+          </button>
+          <button
             className={viewMode === 'verify' ? 'menu-link active' : 'menu-link'}
             type="button"
             onClick={() => navigateTo('/verify-email')}
@@ -73,6 +89,9 @@ function App() {
 
       {viewMode === 'register' ? <RegistrationForm /> : null}
       {viewMode === 'authorization' ? <AuthorizationPlayground /> : null}
+      {viewMode === 'protected' ? (
+        <ProtectedPage onNavigateToAuthorization={() => navigateTo('/authorization')} />
+      ) : null}
       {viewMode === 'verify' ? <VerifyEmailForm /> : null}
     </main>
   )
@@ -89,10 +108,14 @@ function getViewMode(pathname: string): ViewMode {
     return 'authorization'
   }
 
+  if (pathname === '/protected') {
+    return 'protected'
+  }
+
   return 'register'
 }
 
-function getPageContent(viewMode: ViewMode) {
+function getPageContent(viewMode: ViewMode, isAuthenticated: boolean) {
   if (viewMode === 'authorization') {
     return {
       title: 'Authorization',
@@ -101,6 +124,24 @@ function getPageContent(viewMode: ViewMode) {
       description:
         'Use this page to log in, call protected routes, refresh tokens, and see how the client stores the access token in memory while the browser stores the refresh token in an httpOnly cookie.',
     }
+  }
+
+  if (viewMode === 'protected') {
+    return isAuthenticated
+      ? {
+          title: 'Protected Page',
+          eyebrow: 'Route Guard',
+          heading: 'This page is visible only for an authenticated client session',
+          description:
+            'The client checks whether it has a logged-in user and an access token in memory. If both exist, the protected page is rendered and can call protected backend endpoints.',
+        }
+      : {
+          title: 'Protected Page',
+          eyebrow: 'Route Guard',
+          heading: 'You need to log in before entering this page',
+          description:
+            'Right now the client does not have an authenticated session in memory, so the route guard blocks protected content and asks you to go through the authorization page first.',
+        }
   }
 
   if (viewMode === 'verify') {
