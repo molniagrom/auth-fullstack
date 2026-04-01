@@ -1,15 +1,15 @@
 import { AxiosError } from 'axios'
 
 import { axiosInstance } from './client'
-import { clearAccessToken, setAccessToken } from './authSession'
+import {
+  clearAuthSession,
+  setAuthenticatedSession,
+  type AuthUser,
+  updateAuthenticatedUser,
+} from './authSession'
 
 type ApiSuccess = {
   message: string
-}
-
-type AuthUser = {
-  id: string
-  email: string
 }
 
 type LoginSuccess = ApiSuccess & {
@@ -56,7 +56,10 @@ export const api = {
     const response = await axiosInstance.post<LoginSuccess>('/auth/login', body, {
       withCredentials: true,
     })
-    setAccessToken(response.data.accessToken)
+    setAuthenticatedSession({
+      accessToken: response.data.accessToken,
+      user: response.data.user,
+    })
     return response.data
   },
 
@@ -68,12 +71,16 @@ export const api = {
         withCredentials: true,
       },
     )
-    setAccessToken(response.data.accessToken)
+    setAuthenticatedSession({
+      accessToken: response.data.accessToken,
+      user: response.data.user,
+    })
     return response.data
   },
 
   async getCurrentUser() {
     const response = await axiosInstance.get<AuthUser>('/auth/me')
+    updateAuthenticatedUser(response.data)
 
     return response.data
   },
@@ -95,7 +102,7 @@ export const api = {
     const response = await axiosInstance.post<ApiSuccess>('/auth/logout', undefined, {
       withCredentials: true,
     })
-    clearAccessToken()
+    clearAuthSession()
     return response.data
   },
 }

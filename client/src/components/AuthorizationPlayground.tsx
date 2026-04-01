@@ -1,24 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 
 import { api } from '../api/authApi'
 import { getErrorMessage } from '../api/client'
-import { getAccessToken } from '../api/authSession'
+import { getAuthSession, subscribeToAuthSession } from '../api/authSession'
 import { StatusMessage } from './StatusMessage'
 
-type CurrentUser = {
-  id: string
-  email: string
-}
-
 export function AuthorizationPlayground() {
+  const [authSession, setAuthSession] = useState(getAuthSession())
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   const [authMessage, setAuthMessage] = useState('')
   const [authError, setAuthError] = useState('')
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
-  const [accessTokenView, setAccessTokenView] = useState('')
+
+  useEffect(() => {
+    return subscribeToAuthSession(() => {
+      setAuthSession(getAuthSession())
+    })
+  }, [])
 
   async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -26,13 +26,11 @@ export function AuthorizationPlayground() {
     resetFeedback()
 
     try {
-      const data = await api.login({
+      await api.login({
         email: loginEmail,
         password: loginPassword,
       })
 
-      setCurrentUser(data.user)
-      setAccessTokenView(getAccessToken())
       setAuthMessage(
         'Login succeeded. The access token is stored in client memory, and the refresh token is now in an httpOnly cookie.',
       )
@@ -49,9 +47,7 @@ export function AuthorizationPlayground() {
     resetFeedback()
 
     try {
-      const user = await api.getCurrentUser()
-      setCurrentUser(user)
-      setAccessTokenView(getAccessToken())
+      await api.getCurrentUser()
       setAuthMessage('Protected request succeeded with the current access token.')
     } catch (error) {
       setAuthError(getErrorMessage(error, 'Protected request failed.'))
@@ -65,9 +61,7 @@ export function AuthorizationPlayground() {
     resetFeedback()
 
     try {
-      const user = await api.getCurrentUserWithRefreshRetry()
-      setCurrentUser(user)
-      setAccessTokenView(getAccessToken())
+      await api.getCurrentUserWithRefreshRetry()
       setAuthMessage(
         'The client retried the protected request after calling POST /auth/refresh and storing the rotated access token.',
       )
@@ -83,9 +77,7 @@ export function AuthorizationPlayground() {
     resetFeedback()
 
     try {
-      const data = await api.refresh()
-      setCurrentUser(data.user)
-      setAccessTokenView(getAccessToken())
+      await api.refresh()
       setAuthMessage('Refresh succeeded. The backend rotated the refresh session and returned a new access token.')
     } catch (error) {
       setAuthError(getErrorMessage(error, 'Manual refresh failed.'))
@@ -100,8 +92,6 @@ export function AuthorizationPlayground() {
 
     try {
       const data = await api.logout()
-      setCurrentUser(null)
-      setAccessTokenView('')
       setAuthMessage(data.message)
     } catch (error) {
       setAuthError(getErrorMessage(error, 'Logout failed.'))
@@ -184,11 +174,11 @@ export function AuthorizationPlayground() {
       <dl className="link-details">
         <div>
           <dt>Access token in memory</dt>
-          <dd>{accessTokenView || 'Empty until login or refresh'}</dd>
+          <dd>{authSession.accessToken || 'Empty until login or refresh'}</dd>
         </div>
         <div>
           <dt>Current user from backend</dt>
-          <dd>{currentUser ? JSON.stringify(currentUser, null, 2) : 'No authenticated user loaded yet'}</dd>
+          <dd>{authSession.user ? JSON.stringify(authSession.user, null, 2) : 'No authenticated user loaded yet'}</dd>
         </div>
       </dl>
     </section>
