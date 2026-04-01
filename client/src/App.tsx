@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { RegistrationForm } from './components/RegistrationForm'
 import { AuthorizationPlayground } from './components/AuthorizationPlayground'
 import { VerifyEmailForm } from './components/VerifyEmailForm'
@@ -6,8 +7,30 @@ import './App.css'
 type ViewMode = 'register' | 'authorization' | 'verify'
 
 function App() {
-  const viewMode = getViewMode(window.location.pathname)
+  const [pathname, setPathname] = useState(window.location.pathname)
+  const viewMode = getViewMode(pathname)
   const pageContent = getPageContent(viewMode)
+
+  useEffect(() => {
+    function handlePopState() {
+      setPathname(window.location.pathname)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [])
+
+  function navigateTo(nextPathname: string) {
+    if (window.location.pathname === nextPathname) {
+      return
+    }
+
+    window.history.pushState({}, '', nextPathname)
+    setPathname(nextPathname)
+  }
 
   return (
     <main className="page-shell">
@@ -18,24 +41,27 @@ function App() {
         </div>
 
         <nav className="menu-nav" aria-label="Primary">
-          <a
+          <button
             className={viewMode === 'register' ? 'menu-link active' : 'menu-link'}
-            href="/"
+            type="button"
+            onClick={() => navigateTo('/')}
           >
             Registration
-          </a>
-          <a
+          </button>
+          <button
             className={viewMode === 'authorization' ? 'menu-link active' : 'menu-link'}
-            href="/authorization"
+            type="button"
+            onClick={() => navigateTo('/authorization')}
           >
             Authorization
-          </a>
-          <a
+          </button>
+          <button
             className={viewMode === 'verify' ? 'menu-link active' : 'menu-link'}
-            href="/verify-email"
+            type="button"
+            onClick={() => navigateTo('/verify-email')}
           >
             Verify Email
-          </a>
+          </button>
         </nav>
       </header>
 

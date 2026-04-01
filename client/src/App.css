@@ -35,13 +35,15 @@
 }
 
 .menu-link {
+  border: 1px solid #dde4f2;
   padding: 12px 18px;
   border-radius: 999px;
   background: #f2f5fb;
-  border: 1px solid #dde4f2;
   color: #29405f;
+  font: inherit;
   font-weight: 700;
   text-decoration: none;
+  cursor: pointer;
   transition:
     transform 0.16s ease,
     background-color 0.16s ease,
